@@ -6,7 +6,7 @@ import process from "node:process";
 import GitClient from "./client.ts"
 
 // Import the Command classes
-import { CatFileCommand } from "./commands/index.ts";
+import { CatFileCommand, HashObjectCommand } from "./commands/index.ts";
 
 const gitClient = new GitClient();
 
@@ -20,6 +20,9 @@ switch (command) {
     handleCatFileCommand();
     break;
 
+  case "hash-object":
+    handleHashObjectCommand();
+    break;
 
   default:
     process.stderr.write(`Unknown command ${command}`);
@@ -43,3 +46,15 @@ function handleCatFileCommand() {
 
 }
 
+function handleHashObjectCommand() {
+  let flag: string | null = process.argv[3];
+  let filePath: string = process.argv[4];
+
+  if(!filePath){
+    filePath = flag;
+    flag = null;
+  }
+
+  const command = new HashObjectCommand(flag, filePath);
+  gitClient.run(command);
+}
