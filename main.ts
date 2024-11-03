@@ -6,7 +6,7 @@ import process from "node:process";
 import GitClient from "./client.ts"
 
 // Import the Command classes
-import { CatFileCommand, HashObjectCommand } from "./commands/index.ts";
+import { CatFileCommand, HashObjectCommand,LSTreeCommand } from "./commands/index.ts";
 
 const gitClient = new GitClient();
 
@@ -22,6 +22,10 @@ switch (command) {
 
   case "hash-object":
     handleHashObjectCommand();
+    break;
+
+  case "ls-tree":
+    handleLsTreeCommand();
     break;
 
   default:
@@ -56,5 +60,20 @@ function handleHashObjectCommand() {
   }
 
   const command = new HashObjectCommand(flag, filePath);
+  gitClient.run(command);
+}
+
+function handleLsTreeCommand() {
+  let flag: string | null = process.argv[3];
+  let commitSHA: string = process.argv[4];
+
+  if(!commitSHA && flag === "--name-only") return;
+
+  if(!commitSHA){
+    commitSHA = flag;
+    flag = null;
+  }
+
+  const command = new LSTreeCommand(flag, commitSHA);
   gitClient.run(command);
 }
