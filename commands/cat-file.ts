@@ -27,12 +27,12 @@ class CatFileCommand {
         }
 
         const object = fs.readFileSync(objectPath);
-        const decompressedObject = zlib.inflateSync(object).toString();
+        const decompressedObject = zlib.inflateSync(object).toString("utf8");
         // remove extra new line if exist
         const output = decompressedObject.split("\x00");
-        
-        output.forEach((element: any) => {
-          process.stdout.write(element);
+
+        output.forEach((element) => {
+          process.stdout.write(element+"\n");
         });
 
         break;
