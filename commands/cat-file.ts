@@ -41,7 +41,7 @@ class CatFileCommand {
           })
         }else{
           // remove extra new line if exist
-          const output = decompressedObject.split("\x00");
+          const output = decompressedObject.split("\0");
           process.stdout.write(output.toString());
 
         }

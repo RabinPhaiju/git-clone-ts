@@ -6,7 +6,7 @@ import process from "node:process";
 import GitClient from "./client.ts"
 
 // Import the Command classes
-import { CatFileCommand, HashObjectCommand,LSTreeCommand } from "./commands/index.ts";
+import { CatFileCommand, HashObjectCommand,LSTreeCommand,WriteTreeCommand } from "./commands/index.ts";
 
 const gitClient = new GitClient();
 
@@ -26,6 +26,10 @@ switch (command) {
 
   case "ls-tree":
     handleLsTreeCommand();
+    break;
+
+  case "write-tree":
+    handleWriteTreeCommand();
     break;
 
   default:
@@ -75,5 +79,10 @@ function handleLsTreeCommand() {
   }
 
   const command = new LSTreeCommand(flag, commitSHA);
+  gitClient.run(command);
+}
+
+function handleWriteTreeCommand() {
+  const command = new WriteTreeCommand();
   gitClient.run(command);
 }

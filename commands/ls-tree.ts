@@ -40,9 +40,9 @@ class LSTreeCommand {
             }
         }
         if(flag === '--name-only'){
-            const output = decompressedObject.split("\x00");
+            const output = decompressedObject.split("\0");
             const treeContent = output.slice(1).filter(e=>e.includes(" "));
-            const names = treeContent.map(e=>e.split(" ")[1]);
+            const names = treeContent.map(e=>e.split(" ")[e.split(" ").length-1]);
             names.forEach(e=>process.stdout.write(e + "\n"));
         }else{
             const treeEntries = Utils.parseTreeObject(bufferObject);
