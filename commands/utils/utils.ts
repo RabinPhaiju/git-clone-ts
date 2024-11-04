@@ -82,8 +82,8 @@ class Utils {
         // Read directory contents
         const items = fs.readdirSync(dirPath);
             for (const item of items) {
-            // ignore .git directory
-            if (item === '.git') continue;
+            // ignore .git | .groot directory
+            if (item === '.groot' || item === '.git') continue;
 
             const itemPath = path.join(dirPath, item);
             const stat = fs.statSync(itemPath);
@@ -128,7 +128,7 @@ class Utils {
         // Helper function to store an object
         const folder = hash.slice(0, 2);
         const fileName = hash.slice(2);
-        const folderPath = path.join(process.cwd(), '.git', 'objects', folder);
+        const folderPath = path.join(process.cwd(), '.groot', 'objects', folder);
 
         if (!fs.existsSync(folderPath)) {
         fs.mkdirSync(folderPath, { recursive: true });

@@ -19,7 +19,7 @@ class LSTreeCommand {
         const folder = commitSHA.slice(0, 2);
         const fileName = commitSHA.slice(2);
 
-        const objectPath = path.join(process.cwd(), ".git", "objects", folder, fileName);
+        const objectPath = path.join(process.cwd(), ".groot", "objects", folder, fileName);
       
         if (!fs.existsSync(objectPath)) {
           throw new Error(`Not a valid object name ${commitSHA}`);

@@ -11,6 +11,7 @@ import { CatFileCommand, HashObjectCommand,LSTreeCommand,WriteTreeCommand,Commit
 const gitClient = new GitClient();
 
 const command = process.argv[2];
+
 switch (command) {
   case "init":
     createGitDirectory();
@@ -41,11 +42,11 @@ switch (command) {
 }
 
 function createGitDirectory() {
-  fs.mkdirSync(path.join(process.cwd(), ".git"), { recursive: true });
-  fs.mkdirSync(path.join(process.cwd(), ".git", "objects"), { recursive: true });
-  fs.mkdirSync(path.join(process.cwd(), ".git", "refs"), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), ".groot"), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), ".groot", "objects"), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), ".groot", "refs"), { recursive: true });
 
-  fs.writeFileSync(path.join(process.cwd(), ".git", "HEAD"), "ref: refs/heads/main\n");
+  fs.writeFileSync(path.join(process.cwd(), ".groot", "HEAD"), "ref: refs/heads/main\n");
   console.log("Initialized git directory");
 }
 
