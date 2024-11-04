@@ -136,6 +136,16 @@ class Utils {
 
         const compressedObject = zlib.deflateSync(object);
         fs.writeFileSync(path.join(folderPath, fileName), compressedObject);
+        // TODO: add the file to staging area
+        // this.updateStagingArea(hash, fileName);
+    }
+
+    public static updateStagingArea(treeHash: string, filePath: string) {
+        const index = JSON.parse(
+            fs.readFileSync(path.join(process.cwd(), '.groot', 'index'), 'utf8')
+        )
+        index.push({path:filePath, hash:treeHash});
+        fs.writeFileSync(path.join(process.cwd(), '.groot', 'index'), JSON.stringify(index));
     }
 
 }

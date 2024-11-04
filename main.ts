@@ -16,6 +16,10 @@ switch (command) {
   case "init":
     createGitDirectory();
     break;
+  
+  case "add":
+    handleAddCommand();
+    break;
 
   case "cat-file":
     handleCatFileCommand();
@@ -42,12 +46,23 @@ switch (command) {
 }
 
 function createGitDirectory() {
+  if (fs.existsSync(path.join(process.cwd(), ".groot"))) {
+    console.log("Project already initialized");
+    return;
+  }
+
   fs.mkdirSync(path.join(process.cwd(), ".groot"), { recursive: true });
   fs.mkdirSync(path.join(process.cwd(), ".groot", "objects"), { recursive: true });
   fs.mkdirSync(path.join(process.cwd(), ".groot", "refs"), { recursive: true });
-
+  fs.writeFileSync(path.join(process.cwd(), ".groot", "index"), "[]\n");
   fs.writeFileSync(path.join(process.cwd(), ".groot", "HEAD"), "ref: refs/heads/main\n");
   console.log("Initialized git directory");
+}
+
+function handleAddCommand(){
+  const filePath: string = process.argv[3];
+  const command = new HashObjectCommand('-w', filePath);
+  gitClient.run(command);
 }
 
 function handleCatFileCommand() {
