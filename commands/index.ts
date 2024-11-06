@@ -4,4 +4,14 @@ import LSTreeCommand from "./ls-tree.ts";
 import WriteTreeCommand from "./write-tree.ts";
 import CommitTreeCommand from "./commit-tree.ts";
 
-export { CatFileCommand, HashObjectCommand,LSTreeCommand,WriteTreeCommand,CommitTreeCommand }
+import mainScript from "./index-content.ts";
+
+export { 
+    CatFileCommand, 
+    HashObjectCommand,
+    LSTreeCommand,
+    WriteTreeCommand,
+    CommitTreeCommand,
+    
+    mainScript
+ }

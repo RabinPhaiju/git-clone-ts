@@ -6,7 +6,14 @@ import process from "node:process";
 import GitClient from "./client.ts"
 
 // Import the Command classes
-import { CatFileCommand, HashObjectCommand,LSTreeCommand,WriteTreeCommand,CommitTreeCommand } from "./commands/index.ts";
+import { 
+  CatFileCommand, 
+  HashObjectCommand,
+  LSTreeCommand,
+  WriteTreeCommand,
+  CommitTreeCommand,
+  mainScript
+} from "./commands/index.ts";
 
 const gitClient = new GitClient();
 
@@ -39,6 +46,10 @@ switch (command) {
 
   case "commit-tree":
     handleCommitTreeCommand();
+    break;
+
+  case "cat-index":
+    handleIndexContent();
     break;
 
   default:
@@ -113,5 +124,8 @@ function handleCommitTreeCommand() {
   const commitMessage: string = process.argv[7];
   const command = new CommitTreeCommand(tree, commitSha, commitMessage);
   gitClient.run(command);
+}
 
+function handleIndexContent(){
+  mainScript();
 }
