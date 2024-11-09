@@ -69,7 +69,7 @@ class Utils {
     
         // If -w flag is set, store the blob
         if (flag === '-w') {
-            this.writeObject(hash, blob);
+            this.writeObject(hash, blob, filePath);
         }
     
         return hash;
@@ -118,13 +118,13 @@ class Utils {
 
         // If -w flag is set, store the tree object
         if (flag === '-w') {
-            this.writeObject(treeHash, treeObject);
+            this.writeObject(treeHash, treeObject, dirPath);
         }
 
         return treeHash;
     }
 
-    public static writeObject(hash: string, object: Buffer) {
+    public static writeObject(hash: string, object: Buffer, filePath: string) {
         // Helper function to store an object
         const folder = hash.slice(0, 2);
         const fileName = hash.slice(2);
@@ -137,15 +137,81 @@ class Utils {
         const compressedObject = zlib.deflateSync(object);
         fs.writeFileSync(path.join(folderPath, fileName), compressedObject);
         // TODO: add the file to staging area
-        // this.updateStagingArea(hash, fileName);
+        this.addToIndex(hash, filePath);
     }
 
-    public static updateStagingArea(treeHash: string, filePath: string) {
-        const index = JSON.parse(
-            fs.readFileSync(path.join(process.cwd(), '.groot', 'index'), 'utf8')
-        )
-        index.push({path:filePath, hash:treeHash});
-        fs.writeFileSync(path.join(process.cwd(), '.groot', 'index'), JSON.stringify(index));
+    public static addToIndex(hash: string, filePath: string) {
+        const indexPath = path.join(process.cwd(),".git", "index");
+        const stat = fs.statSync(filePath);
+
+        const ctimeSeconds = Math.floor(stat.ctimeMs / 1000);
+        const ctimeNanoseconds = (stat.ctimeMs % 1000) * 1e6;
+        const mtimeSeconds = Math.floor(stat.mtimeMs / 1000);
+        const mtimeNanoseconds = (stat.mtimeMs % 1000) * 1e6;
+
+        const dev = stat.dev;
+        const ino = stat.ino;
+        const mode = stat.mode;
+        const uid = stat.uid;
+        const gid = stat.gid;
+        const fileSize = stat.size;
+
+        const sha1 = Buffer.from(hash, "hex");
+
+        // Flags: 0xFFF = max name length; other bits like assume-valid, etc., can be added later
+        const flags = Math.min(filePath.length, 0xFFF);
+
+        const pathBuffer = Buffer.from(filePath, "utf8");
+
+        // Calculate entry length, ensuring alignment to an 8-byte boundary
+        const entryLength = 62 + pathBuffer.length;
+        const paddingLength = (8 - (entryLength % 8)) % 8;
+        const padding = Buffer.alloc(paddingLength, 0);
+
+        const entryBuffer = Buffer.alloc(entryLength + paddingLength);
+        let offset = 0;
+
+        // Write fields to the buffer
+        entryBuffer.writeUInt32BE(ctimeSeconds, offset); offset += 4;
+        entryBuffer.writeUInt32BE(ctimeNanoseconds, offset); offset += 4;
+        entryBuffer.writeUInt32BE(mtimeSeconds, offset); offset += 4;
+        entryBuffer.writeUInt32BE(mtimeNanoseconds, offset); offset += 4;
+        entryBuffer.writeUInt32BE(dev, offset); offset += 4;
+        entryBuffer.writeUInt32BE(ino, offset); offset += 4;
+        entryBuffer.writeUInt32BE(mode, offset); offset += 4;
+        entryBuffer.writeUInt32BE(uid, offset); offset += 4;
+        entryBuffer.writeUInt32BE(gid, offset); offset += 4;
+        entryBuffer.writeUInt32BE(fileSize, offset); offset += 4;
+        sha1.copy(entryBuffer, offset); offset += 20;
+        entryBuffer.writeUInt16BE(flags, offset); offset += 2;
+        pathBuffer.copy(entryBuffer, offset); offset += pathBuffer.length;
+        padding.copy(entryBuffer, offset);
+
+        // Read existing index if it exists
+        let indexBuffer = Buffer.alloc(0);
+        try {
+            indexBuffer = fs.readFileSync(indexPath);
+        } catch (error: any) {
+            if (error.code !== "ENOENT") throw error;
+        }
+
+        // Update header (update entry count in the index file)
+        let newIndexBuffer;
+        if (indexBuffer.length > 0) {
+            const entryCount = indexBuffer.readUInt32BE(8) + 1;
+            indexBuffer.writeUInt32BE(entryCount, 8);
+            newIndexBuffer = Buffer.concat([indexBuffer, entryBuffer]);
+        } else {
+            // Create a new index file with a header
+            const header = Buffer.alloc(12);
+            header.write("DIRC", 0); // Signature
+            header.writeUInt32BE(2, 4); // Version
+            header.writeUInt32BE(1, 8); // Entry count
+            newIndexBuffer = Buffer.concat([header, entryBuffer]);
+        }
+
+        // Write updated index to the file
+        fs.writeFileSync(indexPath, newIndexBuffer);
     }
 
     public static fileExists(path: string): boolean {
