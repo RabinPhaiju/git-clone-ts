@@ -148,6 +148,13 @@ class Utils {
         fs.writeFileSync(path.join(process.cwd(), '.groot', 'index'), JSON.stringify(index));
     }
 
+    public static fileExists(path: string): boolean {
+        const stat = Deno.statSync(path);
+        return stat.isFile || stat.isDirectory;
+    }
+
 }
+
+
 
 export default Utils; 

@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import zlib from "node:zlib";
@@ -21,13 +20,13 @@ class CatFileCommand {
         const folder = commitSHA.slice(0, 2);
         const fileName = commitSHA.slice(2);
 
-        const objectPath = path.join(process.cwd(), ".groot", "objects", folder, fileName);
+        const objectPath = path.join(process.cwd(), ".git", "objects", folder, fileName);
 
-        if (!fs.existsSync(objectPath)) {
+        if (!Utils.fileExists(objectPath)) {
           throw new Error(`Not a valid object name ${commitSHA}`);
         }
 
-        const object = fs.readFileSync(objectPath);
+        const object = Deno.readFileSync(objectPath);
         const bufferObject = zlib.inflateSync(object)
         const decompressedObject = bufferObject.toString('utf8');
         
