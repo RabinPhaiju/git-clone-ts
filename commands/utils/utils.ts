@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import zlib from "node:zlib";
 import crypto from "node:crypto";
+import {IndexEntry} from "../types/types.ts";
 
 class Utils {
     public static parseTreeObject(data: Buffer): TreeEntry[] {
@@ -141,7 +142,7 @@ class Utils {
     }
 
     public static addToIndex(hash: string, filePath: string) {
-        const indexPath = path.join(process.cwd(),".git", "index");
+        const indexPath = path.join(process.cwd(),".groot", "index");
         const stat = fs.statSync(filePath);
 
         const ctimeSeconds = Math.floor(stat.ctimeMs / 1000);
@@ -195,22 +196,28 @@ class Utils {
             if (error.code !== "ENOENT") throw error;
         }
 
-        // Update header (update entry count in the index file)
+        // if the index file doesn't exist, create a new one
         let newIndexBuffer;
-        if (indexBuffer.length > 0) {
-            const entryCount = indexBuffer.readUInt32BE(8) + 1;
-            indexBuffer.writeUInt32BE(entryCount, 8);
-            newIndexBuffer = Buffer.concat([indexBuffer, entryBuffer]);
-        } else {
-            // Create a new index file with a header
+        if (indexBuffer.length === 0) {
             const header = Buffer.alloc(12);
             header.write("DIRC", 0); // Signature
             header.writeUInt32BE(2, 4); // Version
             header.writeUInt32BE(1, 8); // Entry count
             newIndexBuffer = Buffer.concat([header, entryBuffer]);
+        }else{
+            // Parse existing index entries
+            const existingEntries = parseIndex(indexBuffer);
+            const updatedEntries = existingEntries.filter(entry => entry.filePath !== filePath);
+
+            // Rebuild the index with the new entry
+            newIndexBuffer = Buffer.concat([
+                rebuildIndexHeader(updatedEntries.length + 1), // incremented entryCount
+                ...updatedEntries.map(entryToBuffer),
+                entryBuffer
+            ]);
         }
 
-        // Write updated index to the file
+        // Write the new index back to the file
         fs.writeFileSync(indexPath, newIndexBuffer);
     }
 
@@ -221,6 +228,72 @@ class Utils {
 
 }
 
+function parseIndex(indexBuffer: Buffer): IndexEntry[] {
+    const indexEntries: IndexEntry[] = [];
+    let offset = 12; // Skip header (DIRC + version + entry count)
 
+    const entryCount = indexBuffer.readUInt32BE(8);
+    for (let i = 0; i < entryCount; i++) {
+        const entry: IndexEntry = {
+            ctimeSeconds: indexBuffer.readUInt32BE(offset),
+            ctimeNanoseconds: indexBuffer.readUInt32BE(offset + 4),
+            mtimeSeconds: indexBuffer.readUInt32BE(offset + 8),
+            mtimeNanoseconds: indexBuffer.readUInt32BE(offset + 12),
+            dev: indexBuffer.readUInt32BE(offset + 16),
+            ino: indexBuffer.readUInt32BE(offset + 20),
+            mode: indexBuffer.readUInt32BE(offset + 24),
+            uid: indexBuffer.readUInt32BE(offset + 28),
+            gid: indexBuffer.readUInt32BE(offset + 32),
+            fileSize: indexBuffer.readUInt32BE(offset + 36),
+            sha1: indexBuffer.slice(offset + 40, offset + 60).toString('hex'),
+            flags: indexBuffer.readUInt16BE(offset + 60),
+            filePath: ''
+        };
+
+        offset += 62;
+        const pathEnd = indexBuffer.indexOf(0, offset);
+        entry.filePath = indexBuffer.toString('utf8', offset, pathEnd);
+
+        // Skip padding
+        const entryLength = pathEnd - (offset - 62);
+        const paddingLength = (8 - (entryLength % 8)) % 8;
+        offset = pathEnd + paddingLength;
+
+        indexEntries.push(entry);
+    }
+
+    return indexEntries;
+}
+
+function rebuildIndexHeader(entryCount: number): Buffer {
+    const header = Buffer.alloc(12);
+    header.write('DIRC', 0, 4, 'utf8');
+    header.writeUInt32BE(2, 4); // Version 2
+    header.writeUInt32BE(entryCount, 8);
+    return header;
+}
+
+function entryToBuffer(entry: IndexEntry): Buffer {
+    const buffer = Buffer.alloc(62 + entry.filePath.length + 1);
+    let offset = 0;
+
+    buffer.writeUInt32BE(entry.ctimeSeconds, offset); offset += 4;
+    buffer.writeUInt32BE(entry.ctimeNanoseconds, offset); offset += 4;
+    buffer.writeUInt32BE(entry.mtimeSeconds, offset); offset += 4;
+    buffer.writeUInt32BE(entry.mtimeNanoseconds, offset); offset += 4;
+    buffer.writeUInt32BE(entry.dev, offset); offset += 4;
+    buffer.writeUInt32BE(entry.ino, offset); offset += 4;
+    buffer.writeUInt32BE(entry.mode, offset); offset += 4;
+    buffer.writeUInt32BE(entry.uid, offset); offset += 4;
+    buffer.writeUInt32BE(entry.gid, offset); offset += 4;
+    buffer.writeUInt32BE(entry.fileSize, offset); offset += 4;
+    Buffer.from(entry.sha1, 'hex').copy(buffer, offset); offset += 20;
+    buffer.writeUInt16BE(entry.filePath.length, offset); offset += 2;
+    buffer.write(entry.filePath, offset, 'utf8');
+    offset += entry.filePath.length;
+    buffer.writeUInt8(0, offset); // Null terminate the path
+
+    return buffer;
+}
 
 export default Utils; 

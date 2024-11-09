@@ -2,22 +2,7 @@ import { Buffer } from "node:buffer";
 import path from "node:path";
 import process from "node:process";
 import fs from "node:fs";
-
-interface IndexEntry {
-    ctimeSeconds: number;
-    ctimeNanoseconds: number;
-    mtimeSeconds: number;
-    mtimeNanoseconds: number;
-    dev: number;
-    ino: number;
-    mode: number;
-    uid: number;
-    gid: number;
-    fileSize: number;
-    sha1: string;
-    flags: number;
-    filePath: string;
-}
+import { IndexEntry } from "./types/types.ts";
 
 function readUInt32BE(buffer: Buffer, offset: number): number {
     return buffer.readUInt32BE(offset);
